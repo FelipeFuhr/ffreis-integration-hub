@@ -1,0 +1,106 @@
+services:
+  converter-grpc:
+    build:
+      context: ../../ffreis-python-onnx-model-converter
+      dockerfile: container/Dockerfile.services
+    image: localhost/ffreis-converter:integration
+    command:
+      - python
+      - -m
+      - onnx_converter.converter.grpc_server
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8091"
+
+  convert-model-grpc:
+    image: python:3.13-slim
+    depends_on:
+      converter-grpc:
+        condition: service_started
+    working_dir: /work
+    volumes:
+      - ../:/work
+      - ../../ffreis-python-onnx-model-converter/src:/deps/converter_src:ro
+      - shared-model:/shared
+    environment:
+      CONVERTER_GRPC_TARGET: converter-grpc:8091
+      OUT_DIR: /shared
+      PYTHONPATH: /deps/converter_src
+    command: >
+      sh -lc "python -m pip install --no-cache-dir grpcio protobuf scikit-learn joblib &&
+              python scripts/convert_and_prepare_grpc.py"
+
+  python-grpc:
+    build:
+      context: ../../ffreis-python-onnx-model-serving
+      dockerfile: container/Dockerfile.services
+    image: localhost/ffreis-python-serving:integration
+    depends_on:
+      convert-model-grpc:
+        condition: service_completed_successfully
+    command:
+      - sh
+      - -lc
+      - |
+        while [ ! -f /shared/model.onnx ]; do
+          sleep 1
+        done
+        exec python -m onnx_model_serving.grpc.server --host 0.0.0.0 --port 50052
+    environment:
+      SM_MODEL_DIR: /shared
+      MODEL_TYPE: onnx
+      MODEL_FILENAME: model.onnx
+      OTEL_ENABLED: "false"
+      PROMETHEUS_ENABLED: "false"
+      CSV_HAS_HEADER: "false"
+      PYTHONPATH: /app/src
+    volumes:
+      - shared-model:/shared:ro
+
+  rust-grpc:
+    build:
+      context: ../../ffreis-rust-onnx-model-serving
+      dockerfile: container/Dockerfile.services
+    image: localhost/ffreis-rust-serving:integration
+    depends_on:
+      convert-model-grpc:
+        condition: service_completed_successfully
+    environment:
+      SERVE_MODE: grpc
+      HOST: 0.0.0.0
+      PORT: "50052"
+      MODEL_TYPE: onnx
+      SM_MODEL_DIR: /shared
+      MODEL_FILENAME: model.onnx
+      OTEL_ENABLED: "false"
+      PROMETHEUS_ENABLED: "false"
+    volumes:
+      - shared-model:/shared:ro
+
+  bench-grpc:
+    image: python:3.13-slim
+    depends_on:
+      python-grpc:
+        condition: service_started
+      rust-grpc:
+        condition: service_started
+      convert-model-grpc:
+        condition: service_completed_successfully
+    working_dir: /work
+    volumes:
+      - ../:/work
+      - ../../ffreis-python-onnx-model-serving/src:/deps/serving_src:ro
+      - shared-model:/shared
+    environment:
+      PYTHON_GRPC_TARGET: python-grpc:50052
+      RUST_GRPC_TARGET: rust-grpc:50052
+      BENCH_ITERATIONS: "120"
+      ARTIFACTS_DIR: /shared
+      PYTHONPATH: /deps/serving_src
+    command: >
+      sh -lc "python -m pip install --no-cache-dir grpcio protobuf &&
+              python scripts/bench_compare_grpc.py"
+
+volumes:
+  shared-model:

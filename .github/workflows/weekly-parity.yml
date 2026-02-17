@@ -1,0 +1,46 @@
+name: Weekly Cross-Repo Parity
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+
+jobs:
+  weekly-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout integration hub
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run weekly parity
+        env:
+          INTEGRATION_REPO_TOKEN: ${{ secrets.INTEGRATION_REPO_TOKEN }}
+        run: |
+          make weekly-check
+
+      - name: Run converter-serving parity bench
+        run: |
+          make smoke-converter-serving-parity
+
+      - name: Run converter-serving parity bench (gRPC)
+        run: |
+          make smoke-converter-serving-parity-grpc
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-parity-artifacts
+          path: artifacts/

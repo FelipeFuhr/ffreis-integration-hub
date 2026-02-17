@@ -1,0 +1,120 @@
+services:
+  converter-api:
+    build:
+      context: ../../ffreis-python-onnx-model-converter
+      dockerfile: container/Dockerfile.services
+    image: localhost/ffreis-converter:integration
+    command:
+      - python
+      - -m
+      - onnx_converter.converter.http_server
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8090"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz', timeout=3)"
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  convert-model:
+    image: python:3.13-slim
+    depends_on:
+      converter-api:
+        condition: service_healthy
+    working_dir: /work
+    volumes:
+      - ../:/work
+      - shared-model:/shared
+    environment:
+      CONVERTER_API_BASE: http://converter-api:8090
+      OUT_DIR: /shared
+    command: >
+      sh -lc "python -m pip install --no-cache-dir requests scikit-learn joblib &&
+              python scripts/convert_and_prepare.py"
+
+  python-api:
+    build:
+      context: ../../ffreis-python-onnx-model-serving
+      dockerfile: container/Dockerfile.services
+    image: localhost/ffreis-python-serving:integration
+    depends_on:
+      convert-model:
+        condition: service_completed_successfully
+    command:
+      - sh
+      - -lc
+      - |
+        while [ ! -f /shared/model.onnx ]; do
+          sleep 1
+        done
+        python -c "import uvicorn; from application import create_application; from config import Settings; uvicorn.run(create_application(Settings()), host='0.0.0.0', port=8080)"
+    environment:
+      SM_MODEL_DIR: /shared
+      MODEL_TYPE: onnx
+      MODEL_FILENAME: model.onnx
+      OTEL_ENABLED: "false"
+      PROMETHEUS_ENABLED: "false"
+      CSV_HAS_HEADER: "false"
+      PYTHONPATH: /app/src
+    volumes:
+      - shared-model:/shared:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3)"
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  rust-api:
+    build:
+      context: ../../ffreis-rust-onnx-model-serving
+      dockerfile: container/Dockerfile.services
+    image: localhost/ffreis-rust-serving:integration
+    depends_on:
+      convert-model:
+        condition: service_completed_successfully
+    environment:
+      SERVE_MODE: http
+      HOST: 0.0.0.0
+      PORT: "8080"
+      MODEL_TYPE: onnx
+      SM_MODEL_DIR: /shared
+      MODEL_FILENAME: model.onnx
+      OTEL_ENABLED: "false"
+      PROMETHEUS_ENABLED: "false"
+    volumes:
+      - shared-model:/shared:ro
+
+  bench:
+    image: python:3.13-slim
+    depends_on:
+      python-api:
+        condition: service_healthy
+      rust-api:
+        condition: service_started
+      convert-model:
+        condition: service_completed_successfully
+    working_dir: /work
+    volumes:
+      - ../:/work
+      - shared-model:/shared
+    environment:
+      PYTHON_API_BASE: http://python-api:8080
+      RUST_API_BASE: http://rust-api:8080
+      BENCH_ITERATIONS: "120"
+      ARTIFACTS_DIR: /shared
+    command: >
+      sh -lc "python -m pip install --no-cache-dir requests &&
+              python scripts/bench_compare_http.py"
+
+volumes:
+  shared-model:

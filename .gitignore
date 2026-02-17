@@ -1,0 +1,5 @@
+.work/
+artifacts/*.log
+artifacts/*.json
+__pycache__/
+.pytest_cache/

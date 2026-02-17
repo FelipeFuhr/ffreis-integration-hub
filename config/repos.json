@@ -1,0 +1,52 @@
+{
+  "repos": [
+    {
+      "name": "converter",
+      "url": "https://github.com/ffreis/ffreis-python-onnx-model-converter.git",
+      "ref": "main",
+      "local_path": "../ffreis-python-onnx-model-converter",
+      "checks": [
+        "make grpc-check",
+        "make test-grpc-parity",
+        "make smoke-api-grpc"
+      ]
+    },
+    {
+      "name": "python-serving",
+      "url": "https://github.com/ffreis/ffreis-python-onnx-model-serving.git",
+      "ref": "main",
+      "local_path": "../ffreis-python-onnx-model-serving",
+      "checks": [
+        "make grpc-check",
+        "make test-grpc-parity",
+        "make smoke-api-grpc"
+      ]
+    },
+    {
+      "name": "rust-serving",
+      "url": "https://github.com/ffreis/ffreis-rust-onnx-model-serving.git",
+      "ref": "main",
+      "local_path": "../ffreis-rust-onnx-model-serving",
+      "checks": [
+        "make grpc-check",
+        "make test-grpc-parity",
+        "make smoke-api-grpc"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "name": "common-make-targets",
+      "repos": [
+        "python-serving",
+        "rust-serving",
+        "converter"
+      ],
+      "targets": [
+        "grpc-check",
+        "test-grpc-parity",
+        "smoke-api-grpc"
+      ]
+    }
+  ]
+}

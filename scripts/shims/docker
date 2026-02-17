@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+real_docker="/usr/bin/docker"
+
+if [[ "${1:-}" == "compose" ]]; then
+  shift
+  if [[ -x "$real_docker" ]] && "$real_docker" compose version >/dev/null 2>&1; then
+    exec "$real_docker" compose "$@"
+  fi
+  if command -v podman-compose >/dev/null 2>&1; then
+    exec podman-compose "$@"
+  fi
+  echo "No usable compose implementation available (docker compose / podman-compose)." >&2
+  exit 1
+fi
+
+if [[ -x "$real_docker" ]]; then
+  exec "$real_docker" "$@"
+fi
+
+if command -v podman >/dev/null 2>&1; then
+  exec podman "$@"
+fi
+
+echo "No docker/podman command available." >&2
+exit 1
