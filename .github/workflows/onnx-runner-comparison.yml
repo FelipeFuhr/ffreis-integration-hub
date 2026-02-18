@@ -1,0 +1,100 @@
+name: ONNX Runner Comparison
+
+on:
+  pull_request:
+    paths:
+      - "benchmarks/onnx-runner-comparison/**"
+      - ".github/workflows/onnx-runner-comparison.yml"
+  schedule:
+    - cron: "0 9 * * 3"
+  workflow_dispatch:
+    inputs:
+      run_raw_all:
+        description: "Run full raw-all benchmark (torch + tensorflow)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  native-triple:
+    name: Native Triple (PR)
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout integration hub
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Clone serving repos
+        run: |
+          git clone --depth=1 https://github.com/FelipeFuhr/ffreis-python-onnx-model-serving.git ../ffreis-python-onnx-model-serving
+          git clone --depth=1 https://github.com/FelipeFuhr/ffreis-rust-onnx-model-serving.git ../ffreis-rust-onnx-model-serving
+
+      - name: Run native triple comparison
+        run: |
+          make compare-native-triple
+
+      - name: Upload native triple artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: onnx-runner-native-triple-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            artifacts/
+            benchmarks/onnx-runner-comparison/.pytest_cache/
+            /tmp/onnx-runner-comparison/
+
+  native-raw-all:
+    name: Native Raw All (Scheduled/Manual)
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run_raw_all)
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - name: Checkout integration hub
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Clone serving repos
+        run: |
+          git clone --depth=1 https://github.com/FelipeFuhr/ffreis-python-onnx-model-serving.git ../ffreis-python-onnx-model-serving
+          git clone --depth=1 https://github.com/FelipeFuhr/ffreis-rust-onnx-model-serving.git ../ffreis-rust-onnx-model-serving
+
+      - name: Run native raw-all comparison
+        run: |
+          make compare-native-raw-all
+
+      - name: Upload native raw-all artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: onnx-runner-native-raw-all-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            artifacts/
+            benchmarks/onnx-runner-comparison/.pytest_cache/
+            /tmp/onnx-runner-comparison/

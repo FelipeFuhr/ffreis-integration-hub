@@ -46,6 +46,15 @@ make smoke-converter-serving-parity
 
 Bench report is written to the shared model volume as `converter_serving_bench.json`.
 
+Optional image override knobs:
+
+```bash
+make smoke-converter-serving-parity IMAGE_PROVIDER=ghcr.io IMAGE_PREFIX=ffreis IMAGE_TAG=integration
+```
+
+This resolves images like `ghcr.io/ffreis-converter:integration`,
+`ghcr.io/ffreis-python-serving:integration`, and `ghcr.io/ffreis-rust-serving:integration`.
+
 gRPC variant:
 
 ```bash
@@ -54,6 +63,26 @@ make smoke-converter-serving-parity-grpc
 ```
 
 gRPC bench report is written as `converter_serving_bench_grpc.json`.
+
+## Python vs Rust ONNX Runner Comparison Harness
+
+A starter harness is available at:
+
+- `benchmarks/onnx-runner-comparison`
+
+It supports two modes:
+
+- `container`: compare both implementations running in containers
+- `native`: compare both implementations as local processes
+
+Run from integration hub:
+
+```bash
+cd ffreis-integration-hub
+make compare-container
+make compare-native
+make compare-all
+```
 
 ## CI usage
 
