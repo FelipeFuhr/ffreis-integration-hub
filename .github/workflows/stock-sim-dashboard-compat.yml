@@ -2,6 +2,7 @@ name: Stock Simulator Dashboard Compatibility
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "scripts/check_stock_dashboard_compat.py"
       - "scripts/compose.sh"
@@ -19,6 +20,7 @@ concurrency:
 
 jobs:
   stock-sim-dashboard-compat:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
