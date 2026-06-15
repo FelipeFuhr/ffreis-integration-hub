@@ -1,5 +1,9 @@
 # ffreis-integration-hub
 
+<!-- ffreis-badges:start -->
+[![CI](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FelipeFuhr/ffreis-badges/main/badges/ffreis-integration-hub/ci.json)](https://github.com/FelipeFuhr/ffreis-integration-hub/actions) [![License](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FelipeFuhr/ffreis-badges/main/badges/ffreis-integration-hub/license.json)](https://github.com/FelipeFuhr/ffreis-integration-hub/blob/main/LICENSE)
+<!-- ffreis-badges:end -->
+
 Cross-repository integration/parity runner for services that should stay behaviorally aligned.
 
 ## What this checks today
