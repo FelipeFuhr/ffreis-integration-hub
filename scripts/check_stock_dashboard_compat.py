@@ -54,7 +54,12 @@ def _wait_ok(scheme: str, netloc: str, path: str, timeout_seconds: float = 40.0)
 
 
 def _must_json(raw: bytes) -> dict[str, object]:
-    return json.loads(raw.decode("utf-8"))
+    # scan-fix(mypy:no-any-return): json.loads returns Any; assert+narrow
+    # instead of a blind cast so a non-object JSON payload fails loudly here
+    # rather than surfacing as a confusing AttributeError downstream.
+    data = json.loads(raw.decode("utf-8"))
+    assert isinstance(data, dict), f"expected a JSON object, got {type(data).__name__}"
+    return data
 
 
 def _assert_state_payload(payload: dict[str, object]) -> None:

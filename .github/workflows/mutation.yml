@@ -1,0 +1,70 @@
+name: Mutation Testing (mutmut)
+
+# Reusable-workflow caller — see python-mutation.yml for the actual run/score
+# steps. Scheduled/dispatch-only by design (mutmut takes many minutes; never
+# gate a PR on it).
+#
+# NOTE on the threshold below: a local `mutmut run --paths-to-mutate scripts
+# --tests-dir tests` on this repo produced an anomalous 0% kill rate across a
+# 573/1436-mutant partial run (interrupted only by wall-clock budget, not a
+# crash). A manual spot-check — hand-applying one of the same mutations
+# (negating the `if not preproc_p.exists():` guard in
+# scripts/check_feature_contract.py) and running the exact command mutmut
+# uses (`python -m pytest -x --assert=plain`) directly — correctly failed the
+# suite, so the tests themselves are not blanket-broken. The discrepancy
+# between mutmut's own orchestrated run and a direct manual run was not root-
+# caused within this session's time budget (suspects: interaction between
+# pytest-cov's `--cov-fail-under=80` addopts and mutmut's exit-code check
+# `returncode != 1` in mutmut/__init__.py:tests_pass, or something specific to
+# how mutmut re-imports check_feature_contract.py across mutants). Threshold
+# is set low (30) deliberately so this doesn't silently masquerade as a
+# validated gate — treat the first scheduled/dispatched run's actual score as
+# the real signal, investigate further if it reproduces the ~0% result, and
+# raise the threshold once the true achievable score is known.
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manual run (optional)"
+        required: false
+        type: string
+  schedule:
+    - cron: "51 9 12 * *"  # monthly scattered
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  mutation:
+    uses: FelipeFuhr/ffreis-workflows-python/.github/workflows/python-mutation.yml@8405bfc6e887b6e1af634a6ed104538ab98d3baf # main (post-#98)
+    with:
+      working-directory: "."
+      uv-groups: "dev"
+      paths-to-mutate: "scripts"
+      threshold: 30
+
+  notify-failure:
+    needs: [mutation]
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `⚠️ [CI] ${context.workflow} failed (${new Date().toISOString().split('T')[0]})`,
+              body: [
+                `**Workflow:** ${context.workflow}`,
+                `**Run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              ].join('\n'),
+            });

@@ -4,10 +4,15 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
-      - "tests/test_ml_onnx_feature_boundary.py"
-      - "tests/test_ml_registry_serve_parity.py"
-      - "scripts/check_ml_component_contracts.sh"
+      # scan-fix(ci-gap): the old filter only listed 2 of 6 tests/*.py files
+      # plus the shell runner — a change to scripts/check_feature_contract.py
+      # or scripts/check_ml_component_contracts.py (the very modules these
+      # contracts exercise) never triggered this workflow. Widened to the
+      # whole scripts/ and tests/ trees plus the lockfile.
+      - "scripts/**"
+      - "tests/**"
       - "pyproject.toml"
+      - "uv.lock"
       - ".github/workflows/ml-component-contracts.yml"
   schedule:
     - cron: "17 10 15 * *"  # monthly scattered

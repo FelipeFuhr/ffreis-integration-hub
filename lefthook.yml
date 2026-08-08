@@ -3,16 +3,10 @@ remotes:
     ref: v1.6.0
     configs:
       - lefthook/base.yml
-
-# uses uv run ruff directly (not make fmt-check)
-pre-commit:
-  commands:
-    fmt-check:
-      glob: "scripts/**/*.py"
-      run: uv run ruff format --check scripts
-    lint:
-      glob: "scripts/**/*.py"
-      run: uv run ruff check scripts
+      - lefthook/python.yml
+    # python.yml's pre-commit fmt-check / complex lint+coverage+integration-coverage /
+    # release mutation all delegate to `make <target>` — see Makefile for
+    # fmt-check, lint, coverage, coverage-gate, integration-coverage-gate, mutation.
 
 pre-push:
   parallel: false

@@ -53,7 +53,9 @@ def _numbers_close(a: Any, b: Any, atol: float = 1e-5) -> bool:
         return all(_numbers_close(va, vb, atol) for va, vb in zip(a, b, strict=True))
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
         return math.isclose(float(a), float(b), abs_tol=atol, rel_tol=0.0)
-    return a == b
+    # scan-fix(mypy:no-any-return): a/b are Any, so `a == b` types as Any —
+    # bool() makes the declared -> bool return explicit.
+    return bool(a == b)
 
 
 def _summarize(samples: list[float]) -> dict[str, float]:
