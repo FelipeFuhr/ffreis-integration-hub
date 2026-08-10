@@ -15,6 +15,11 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      # scan-fix(ci:permissions-startup-failure): the nested general-release-please.yml
+      # job itself requests issues:write; the caller must grant at least that or GitHub
+      # rejects the workflow at startup ("requesting 'issues: write', but is only
+      # allowed 'issues: none'").
+      issues: write
     uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-release-please.yml@main
     with:
       # scan-fix(public-repo-runner): pin to ubuntu-latest — this repo is public,

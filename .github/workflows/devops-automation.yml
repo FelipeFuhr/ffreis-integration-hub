@@ -44,6 +44,12 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      # scan-fix(ci:permissions-startup-failure): GitHub validates nested-job
+      # permissions statically for the whole file, before any `if:` is
+      # evaluated — this job's gate being false doesn't skip the check. The
+      # nested job requests issues:write; grant it or the whole workflow
+      # fails at startup.
+      issues: write
     uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-release-please.yml@main
     with:
       target-branch: "main"
