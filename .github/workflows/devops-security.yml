@@ -47,15 +47,14 @@ jobs:
       security-events: write
     # Consolidated fs-security bundle: Trivy(fs) + Grype(fs) + gitleaks in ONE job
     # (was 3 separate jobs). upload-sarif off: GHAS/code-scanning not enabled.
+    # NOTE: pinned to v1.3.0, which predates the runner: input entirely — this
+    # job's reusable workflow hardcodes `runs-on: ubuntu-latest` at this SHA, so
+    # it was never affected by the self-hosted default flip and needs no override.
     uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-security-fs.yml@503674eb96658628d0938c23a44d226803021705 # v1.3.0
     with:
       working-directory: "."
       scan-history: true
       upload-sarif: false
-      # scan-fix(public-repo-runner): pin to ubuntu-latest — this repo is public,
-      # self-hosted runners can't pick up its jobs (GitHub blocks self-hosted on
-      # public repos; the fleet pool is org-scoped to ffreis-org anyway).
-      runner: '["ubuntu-latest"]'
   osv:
     needs: changes
     if: |
