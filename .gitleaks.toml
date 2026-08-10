@@ -26,12 +26,15 @@ severity    = "info"
   ]
 
 # ── Global allowlist ──────────────────────────────────────────────────────────
-# scan-fix(ci:gitleaks-legacy-check): worded to avoid the literal substring
-# "[[allowlist]]" (even in a comment) — the CI pre-check's `grep -qF` can't
-# distinguish prose from real TOML syntax. gitleaks v8 expects a SINGLE
-# [allowlist] table (a map); the old array-of-tables form fails to load
-# ("expected a map, got slice") and so the scan never runs. The six former
-# groups are merged here; per-group reasoning is retained as inline comments.
+# scan-fix(ci:gitleaks-legacy-check): this comment avoids ever writing the
+# open-open-close-close bracket sequence gitleaks v8 rejects, even as prose
+# — the CI pre-check's `grep -qF` matches that literal text anywhere in the
+# file, comments included, and a prior fix attempt still tripped it by
+# quoting the sequence instead of describing it. gitleaks v8 expects a
+# SINGLE [allowlist] table (a map); the old array-of-tables form fails to
+# load ("expected a map, got slice") and so the scan never runs. The six
+# former groups are merged here; per-group reasoning is retained as inline
+# comments.
 [allowlist]
 description = "Global allowlist: placeholders, doc files, lock files, test fixtures, generated code"
 regexes = [
