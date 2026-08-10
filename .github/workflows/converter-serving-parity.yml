@@ -31,6 +31,18 @@ jobs:
       - name: Checkout integration hub
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
+      - name: Clone sibling repos
+        # scan-fix(ci:missing-sibling-checkout): the compose files under
+        # examples/ build from `../../<repo>` (siblings of this checkout) —
+        # ffreis-python-onnx-model-serving redirects to its renamed repo
+        # ffreis-python-model-serving; clone via the new URL but keep the
+        # old directory name so the compose `context:` path still resolves.
+        run: |
+          set -euo pipefail
+          git clone --depth=1 https://github.com/FelipeFuhr/ffreis-python-onnx-model-converter.git ../ffreis-python-onnx-model-converter
+          git clone --depth=1 https://github.com/FelipeFuhr/ffreis-python-model-serving.git ../ffreis-python-onnx-model-serving
+          git clone --depth=1 https://github.com/FelipeFuhr/ffreis-rust-onnx-model-serving.git ../ffreis-rust-onnx-model-serving
+
       - name: Run converter-serving parity bench (HTTP)
         run: |
           set -euo pipefail
