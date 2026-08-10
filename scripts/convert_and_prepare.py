@@ -9,8 +9,8 @@ import os
 import time
 from pathlib import Path
 
-import joblib
 import requests
+import skops.io as skio
 from sklearn.linear_model import LogisticRegression
 
 
@@ -50,10 +50,16 @@ def main() -> None:
     model = LogisticRegression(random_state=42, solver="liblinear")
     model.fit(x_train, y_train)
 
-    artifact_path = out_dir / "model.joblib"
+    artifact_path = out_dir / "model.skops"
     onnx_path = out_dir / "model.onnx"
     metadata_path = out_dir / "conversion_metadata.json"
-    joblib.dump(model, artifact_path)
+    # scan-fix(security:unsafe-pickle-upload): the converter's transport APIs
+    # (HTTP + gRPC) intentionally hardcode allow_unsafe=False and ignore
+    # whatever the client sends — accepting "allow unsafe pickle load" from a
+    # network caller would make the converter an arbitrary-code-execution
+    # sink for anyone who can reach it. Use the safe .skops format instead of
+    # joblib/pickle, which the converter's SklearnModelLoader already supports.
+    skio.dump(model, artifact_path)
 
     payload = artifact_path.read_bytes()
     expected_sha = hashlib.sha256(payload).hexdigest()
@@ -65,9 +71,8 @@ def main() -> None:
                 "expected_sha256": expected_sha,
                 "n_features": "3",
                 "opset_version": "14",
-                "allow_unsafe": "true",
             },
-            files={"artifact": ("model.joblib", handle, "application/octet-stream")},
+            files={"artifact": ("model.skops", handle, "application/octet-stream")},
             timeout=120,
         )
 

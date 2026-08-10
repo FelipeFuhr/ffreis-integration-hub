@@ -28,7 +28,7 @@ services:
       OUT_DIR: /shared
       PYTHONPATH: /deps/converter_src
     command: >
-      sh -lc "python -m pip install --no-cache-dir grpcio==1.78.0 protobuf==6.33.5 scikit-learn==1.8.0 joblib==1.5.3 &&
+      sh -lc "python -m pip install --no-cache-dir grpcio==1.78.0 protobuf==6.33.5 scikit-learn==1.8.0 skops==0.14.0 &&
               python scripts/convert_and_prepare_grpc.py"
 
   python-grpc:
