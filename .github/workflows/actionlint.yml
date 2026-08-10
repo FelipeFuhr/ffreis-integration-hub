@@ -23,3 +23,7 @@ jobs:
     with:
       working-directory: .
       fail-on-error: true
+      # scan-fix(public-repo-runner): pin to ubuntu-latest — this repo is public,
+      # self-hosted runners can't pick up its jobs (GitHub blocks self-hosted on
+      # public repos; the fleet pool is org-scoped to ffreis-org anyway).
+      runner: '["ubuntu-latest"]'
