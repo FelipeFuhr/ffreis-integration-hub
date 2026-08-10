@@ -14,6 +14,10 @@ jobs:
   semantic-pr:
     if: github.event_name == 'pull_request'
     permissions:
+      contents: read
+      # scan-fix(ci:startup-failure): added contents:read — general-semantic-pr.yml's
+      # job needs it (checkout step); the caller only granting pull-requests:read
+      # capped the token below what the reusable workflow requires.
       pull-requests: read
     uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-semantic-pr.yml@main
     with:

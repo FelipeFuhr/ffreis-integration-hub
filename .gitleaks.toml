@@ -26,10 +26,12 @@ severity    = "info"
   ]
 
 # ── Global allowlist ──────────────────────────────────────────────────────────
-# gitleaks v8 expects a SINGLE [allowlist] table (a map). The legacy [[allowlist]]
-# array-of-tables form fails to load ("expected a map, got slice") and so the
-# scan never runs. The six former groups are merged here; per-group reasoning is
-# retained as inline comments.
+# scan-fix(ci:gitleaks-legacy-check): worded to avoid the literal substring
+# "[[allowlist]]" (even in a comment) — the CI pre-check's `grep -qF` can't
+# distinguish prose from real TOML syntax. gitleaks v8 expects a SINGLE
+# [allowlist] table (a map); the old array-of-tables form fails to load
+# ("expected a map, got slice") and so the scan never runs. The six former
+# groups are merged here; per-group reasoning is retained as inline comments.
 [allowlist]
 description = "Global allowlist: placeholders, doc files, lock files, test fixtures, generated code"
 regexes = [

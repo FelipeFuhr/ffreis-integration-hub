@@ -22,7 +22,9 @@ jobs:
     uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-actionlint.yml@main
     with:
       working-directory: .
-      fail-on-error: true
+      # scan-fix(ci:startup-failure): dropped fail-on-error — general-actionlint.yml
+      # doesn't declare that input, so passing it made every run a startup_failure
+      # before any step could execute.
       # scan-fix(public-repo-runner): pin to ubuntu-latest — this repo is public,
       # self-hosted runners can't pick up its jobs (GitHub blocks self-hosted on
       # public repos; the fleet pool is org-scoped to ffreis-org anyway).
