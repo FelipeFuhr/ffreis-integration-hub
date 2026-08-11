@@ -55,6 +55,18 @@ jobs:
           set -euo pipefail
           make stock-sim-full-stack
 
+      - name: Stage sibling-repo artifacts for upload
+        # scan-fix(ci:relative-path-in-upload-artifact): actions/upload-artifact
+        # v4 rejects any path containing ".." ("Relative pathing '.' and '..'
+        # is not allowed"), so the rl-agent artifacts (which live one
+        # directory above this checkout, per the sibling-clone convention)
+        # must be copied inside the workspace before uploading.
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/rl-agent
+          cp -r ../ffreis-stock-rl-agent/artifacts/. artifacts/rl-agent/ 2>/dev/null || true
+
       - name: Upload artifacts
         if: always()
         # scan-fix(ci:unpinned-action): pinned to the SHA already vetted for
@@ -63,6 +75,4 @@ jobs:
         with:
           name: stock-sim-full-stack-artifacts-${{ github.run_id }}
           if-no-files-found: warn
-          path: |
-            artifacts/
-            ../ffreis-stock-rl-agent/artifacts/
+          path: artifacts/

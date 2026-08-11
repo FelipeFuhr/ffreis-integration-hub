@@ -4,9 +4,12 @@ setup:
     cwd: ../ffreis-python-onnx-model-serving
     # scan-fix(ci:onnx-op-unimplemented): build_sklearn_and_onnx_smoke_models.py
     # now hand-builds the ONNX graph (MatMul+Add) instead of delegating to
-    # skl2onnx.convert_sklearn, so it depends on `onnx` directly rather than
-    # `skl2onnx` (see ffreis-python-model-serving PR fixing tract's
-    # "Unimplemented(LinearRegressor)" failure).
+    # skl2onnx.convert_sklearn, so it needs `onnx` directly (see
+    # ffreis-python-model-serving PR fixing tract's
+    # "Unimplemented(LinearRegressor)" failure). `skl2onnx` is kept installed
+    # too, harmlessly unused, so this doesn't hard-depend on that PR merging
+    # before this one — dropping it is optional follow-up cleanup once main
+    # no longer needs it.
     cmd:
       [
         "uv",
@@ -17,6 +20,8 @@ setup:
         "scikit-learn",
         "--with",
         "joblib",
+        "--with",
+        "skl2onnx",
         "--with",
         "onnx",
         "python",

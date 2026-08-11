@@ -2,7 +2,10 @@ services:
   simulator:
     build:
       context: ../../ffreis-stock-simulator
-      dockerfile: container/Dockerfile
+      # scan-fix(ci:wrong-dockerfile-name): all three sibling repos name
+      # their build file `Containerfile`, not `Dockerfile` — confirmed via
+      # `gh api repos/.../contents/`.
+      dockerfile: container/Containerfile
     image: ffreis-stock-simulator:local
     environment:
       HOST: 0.0.0.0
@@ -26,7 +29,7 @@ services:
   dashboard:
     build:
       context: ../../ffreis-stock-simulator-dashboard-go
-      dockerfile: Dockerfile
+      dockerfile: Containerfile
     image: ffreis-stock-dashboard:local
     environment:
       SIMULATOR_BASE_URL: http://simulator:8000
@@ -41,7 +44,7 @@ services:
   rl-agent:
     build:
       context: ../../ffreis-stock-rl-agent
-      dockerfile: Dockerfile
+      dockerfile: Containerfile
     image: ffreis-stock-rl-agent:local
     depends_on:
       simulator:
