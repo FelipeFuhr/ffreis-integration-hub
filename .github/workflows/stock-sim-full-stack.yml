@@ -27,7 +27,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout integration hub
-        uses: actions/checkout@v4
+        # scan-fix(ci:unpinned-action): pinned to the SHA already vetted for
+        # this action elsewhere in this repo (stock-sim-dashboard-compat.yml)
+        # — org policy requires full-length commit SHAs, not version tags.
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Clone stock simulator/dashboard/agent repos
         run: |
@@ -46,7 +49,9 @@ jobs:
 
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        # scan-fix(ci:unpinned-action): pinned to the SHA already vetted for
+        # this action elsewhere in this repo (stock-sim-dashboard-compat.yml).
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: stock-sim-full-stack-artifacts-${{ github.run_id }}
           if-no-files-found: warn
