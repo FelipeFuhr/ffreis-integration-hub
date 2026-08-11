@@ -43,8 +43,13 @@ services:
 
   rl-agent:
     build:
-      context: ../../ffreis-stock-rl-agent
-      dockerfile: Containerfile
+      # scan-fix(ci:missing-path-source-sibling): stock-rl-agent's
+      # Containerfile expects a build context laid out as
+      # stock/ffreis-agents-runtime + stock-rl-agent-repo (its
+      # [tool.uv.sources] path dependency), not the repo's own root —
+      # see the CI workflow step that assembles this directory.
+      context: ../../rl-agent-build-ctx
+      dockerfile: stock-rl-agent-repo/Containerfile
     image: ffreis-stock-rl-agent:local
     depends_on:
       simulator:
