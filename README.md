@@ -151,7 +151,6 @@ Compose file:
 A starter harness is available at:
 
 - `benchmarks/onnx-runner-comparison`
-- standalone repo: `../ffreis-onnx-runner-comparison`
 
 It supports two modes:
 
@@ -166,17 +165,6 @@ make compare-container
 make compare-native
 make compare-all
 ```
-
-Run the standalone comparison repo through integration-hub and require a report:
-
-```bash
-cd ffreis-integration-hub
-make compare-repo-native
-```
-
-This copies the generated report to:
-
-- `artifacts/standalone-comparison-report.json`
 
 ## CI usage
 

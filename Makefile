@@ -6,8 +6,6 @@ IMAGE_PREFIX ?= ffreis
 IMAGE_TAG ?= integration
 IMAGE_ROOT := $(if $(IMAGE_PROVIDER),$(IMAGE_PROVIDER)/,)$(IMAGE_PREFIX)
 BENCH_DIR ?= benchmarks/onnx-runner-comparison
-COMPARE_REPO_DIR ?= ../ffreis-onnx-runner-comparison
-COMPARE_REPORT ?= artifacts/compare-native-sepal-report.json
 
 GITLEAKS         ?= gitleaks
 LEFTHOOK_VERSION ?= 1.7.10
@@ -137,15 +135,6 @@ compare-native-raw-all: ## Run native 5-way comparison (python onnx/sklearn/pyto
 .PHONY: compare-all
 compare-all: ## Run both container and native ONNX runner comparison modes
 	cd $(BENCH_DIR) && $(MAKE) compare-container && $(MAKE) compare-native
-
-.PHONY: compare-repo-native
-compare-repo-native: ## Run standalone comparison repo in native mode and validate JSON report
-	@test -d "$(COMPARE_REPO_DIR)" || (echo "Missing repo at $(COMPARE_REPO_DIR)"; exit 1)
-	$(MAKE) -C "$(COMPARE_REPO_DIR)" install
-	$(MAKE) -C "$(COMPARE_REPO_DIR)" report MODE=native SCENARIO=sepal-sum REPORT="$(COMPARE_REPORT)"
-	@test -s "$(COMPARE_REPO_DIR)/$(COMPARE_REPORT)" || (echo "Missing report: $(COMPARE_REPO_DIR)/$(COMPARE_REPORT)"; exit 1)
-	mkdir -p artifacts
-	cp -f "$(COMPARE_REPO_DIR)/$(COMPARE_REPORT)" artifacts/standalone-comparison-report.json
 
 .PHONY: secrets-scan-staged lefthook-bootstrap lefthook-install lefthook-run lefthook
 
