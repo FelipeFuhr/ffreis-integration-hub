@@ -35,7 +35,7 @@ services:
       CONVERTER_API_BASE: http://converter-api:8090
       OUT_DIR: /shared
     command: >
-      sh -lc "python -m pip install --no-cache-dir requests scikit-learn joblib &&
+      sh -lc "python -m pip install --no-cache-dir requests scikit-learn skops &&
               python scripts/convert_and_prepare.py"
 
   python-api:
