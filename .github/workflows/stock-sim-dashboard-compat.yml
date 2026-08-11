@@ -41,6 +41,17 @@ jobs:
           git clone --depth=1 https://github.com/FelipeFuhr/ffreis-stock-simulator-dashboard-go.git ../ffreis-stock-simulator-dashboard-go
 
       - name: Run compatibility smoke
+        env:
+          # scan-fix(ci:blank-build-arg): docker compose's bake export path
+          # can drop the ${DASHBOARD_RUNTIME_IMAGE:-default} fallback and
+          # hand the Containerfile an empty RUNTIME_IMAGE ("base name should
+          # not be blank"). Pin both build-arg env vars explicitly so the
+          # build never depends on that interpolation succeeding, and
+          # disable the bake export path outright since it's the thing
+          # dropping the default.
+          COMPOSE_BAKE: "false"
+          DASHBOARD_BUILDER_IMAGE: "golang:1.25.8-alpine"
+          DASHBOARD_RUNTIME_IMAGE: "gcr.io/distroless/static-debian12:nonroot"
         run: |
           set -euo pipefail
           make smoke-stock-sim-dashboard
