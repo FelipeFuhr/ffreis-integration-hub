@@ -28,7 +28,7 @@ services:
       OUT_DIR: /shared
       PYTHONPATH: /deps/converter_src
     command: >
-      sh -lc "python -m pip install --no-cache-dir grpcio==1.78.0 protobuf==6.33.5 scikit-learn==1.8.0 skops==0.14.0 &&
+      sh -c "python -m pip install --no-cache-dir grpcio==1.78.0 protobuf==6.33.5 scikit-learn==1.8.0 skops==0.14.0 &&
               python scripts/convert_and_prepare_grpc.py"
 
   python-grpc:
@@ -41,7 +41,7 @@ services:
         condition: service_completed_successfully
     command:
       - sh
-      - -lc
+      - -c
       - |
         while [ ! -f /shared/model.onnx ]; do
           sleep 1
@@ -99,7 +99,7 @@ services:
       ARTIFACTS_DIR: /shared
       PYTHONPATH: /deps/serving_src
     command: >
-      sh -lc "python -m pip install --no-cache-dir grpcio==1.78.0 protobuf==6.33.5 &&
+      sh -c "python -m pip install --no-cache-dir grpcio==1.78.0 protobuf==6.33.5 &&
               python scripts/bench_compare_grpc.py"
 
 volumes:

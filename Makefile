@@ -6,8 +6,6 @@ IMAGE_PREFIX ?= ffreis
 IMAGE_TAG ?= integration
 IMAGE_ROOT := $(if $(IMAGE_PROVIDER),$(IMAGE_PROVIDER)/,)$(IMAGE_PREFIX)
 BENCH_DIR ?= benchmarks/onnx-runner-comparison
-COMPARE_REPO_DIR ?= ../ffreis-onnx-runner-comparison
-COMPARE_REPORT ?= artifacts/compare-native-sepal-report.json
 
 GITLEAKS         ?= gitleaks
 LEFTHOOK_VERSION ?= 1.7.10
@@ -79,15 +77,39 @@ print-summary: ## Print latest JSON summary
 typing-debt-report: ## Report Python typing debt (Any/object) across sibling repos
 	./scripts/check_python_typing_debt.py --json-out artifacts/typing-debt.json
 
+# scan-fix(ci:abort-on-oneshot-exit): a single `up --abort-on-container-exit`
+# covering both the one-shot convert-model job AND the long-running serving
+# services races itself — convert-model's normal, successful exit is
+# indistinguishable from a crash to --abort-on-container-exit, so it tore
+# down python-api/rust-api before `bench` (the actual test) ever ran
+# ("dependency failed to start: container ... exited"). Never observed
+# passing in CI history. Splitting into three phases keeps convert-model's
+# exit out of the abort-watched set entirely: bring the converter up
+# detached, run the one-shot conversion to completion via `compose run`
+# (its own exit code surfaces a real conversion failure directly), then
+# `up --abort-on-container-exit` only the services that are actually
+# supposed to run for the duration of the benchmark.
 .PHONY: smoke-converter-serving-parity
 smoke-converter-serving-parity: ## Convert via converter API, then benchmark Python vs Rust serving parity
-	-IMAGE_ROOT="$(IMAGE_ROOT)" IMAGE_TAG="$(IMAGE_TAG)" ./scripts/compose.sh -f examples/docker-compose.converter-serving-parity.yml down --remove-orphans
-	IMAGE_ROOT="$(IMAGE_ROOT)" IMAGE_TAG="$(IMAGE_TAG)" ./scripts/compose.sh -f examples/docker-compose.converter-serving-parity.yml up --build --abort-on-container-exit --exit-code-from bench
+	@set -euo pipefail; \
+	compose() { IMAGE_ROOT="$(IMAGE_ROOT)" IMAGE_TAG="$(IMAGE_TAG)" ./scripts/compose.sh -f examples/docker-compose.converter-serving-parity.yml "$$@"; }; \
+	cleanup() { compose down --remove-orphans || true; }; \
+	trap cleanup EXIT; \
+	cleanup; \
+	compose up -d --build converter-api; \
+	compose run --rm convert-model; \
+	compose up --build --abort-on-container-exit --exit-code-from bench python-api rust-api bench
 
 .PHONY: smoke-converter-serving-parity-grpc
 smoke-converter-serving-parity-grpc: ## Convert via converter gRPC, then benchmark Python vs Rust serving gRPC parity
-	-IMAGE_ROOT="$(IMAGE_ROOT)" IMAGE_TAG="$(IMAGE_TAG)" ./scripts/compose.sh -f examples/docker-compose.converter-serving-parity-grpc.yml down --remove-orphans
-	IMAGE_ROOT="$(IMAGE_ROOT)" IMAGE_TAG="$(IMAGE_TAG)" ./scripts/compose.sh -f examples/docker-compose.converter-serving-parity-grpc.yml up --build --abort-on-container-exit --exit-code-from bench-grpc
+	@set -euo pipefail; \
+	compose() { IMAGE_ROOT="$(IMAGE_ROOT)" IMAGE_TAG="$(IMAGE_TAG)" ./scripts/compose.sh -f examples/docker-compose.converter-serving-parity-grpc.yml "$$@"; }; \
+	cleanup() { compose down --remove-orphans || true; }; \
+	trap cleanup EXIT; \
+	cleanup; \
+	compose up -d --build converter-grpc; \
+	compose run --rm convert-model-grpc; \
+	compose up --build --abort-on-container-exit --exit-code-from bench-grpc python-grpc rust-grpc bench-grpc
 
 .PHONY: smoke-stock-sim-dashboard
 smoke-stock-sim-dashboard: ## Validate compatibility between stock simulator and Go dashboard
@@ -137,15 +159,6 @@ compare-native-raw-all: ## Run native 5-way comparison (python onnx/sklearn/pyto
 .PHONY: compare-all
 compare-all: ## Run both container and native ONNX runner comparison modes
 	cd $(BENCH_DIR) && $(MAKE) compare-container && $(MAKE) compare-native
-
-.PHONY: compare-repo-native
-compare-repo-native: ## Run standalone comparison repo in native mode and validate JSON report
-	@test -d "$(COMPARE_REPO_DIR)" || (echo "Missing repo at $(COMPARE_REPO_DIR)"; exit 1)
-	$(MAKE) -C "$(COMPARE_REPO_DIR)" install
-	$(MAKE) -C "$(COMPARE_REPO_DIR)" report MODE=native SCENARIO=sepal-sum REPORT="$(COMPARE_REPORT)"
-	@test -s "$(COMPARE_REPO_DIR)/$(COMPARE_REPORT)" || (echo "Missing report: $(COMPARE_REPO_DIR)/$(COMPARE_REPORT)"; exit 1)
-	mkdir -p artifacts
-	cp -f "$(COMPARE_REPO_DIR)/$(COMPARE_REPORT)" artifacts/standalone-comparison-report.json
 
 .PHONY: secrets-scan-staged lefthook-bootstrap lefthook-install lefthook-run lefthook
 

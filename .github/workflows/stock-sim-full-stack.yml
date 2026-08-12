@@ -27,14 +27,42 @@ jobs:
       contents: read
     steps:
       - name: Checkout integration hub
-        uses: actions/checkout@v4
+        # scan-fix(ci:unpinned-action): pinned to the SHA already vetted for
+        # this action elsewhere in this repo (stock-sim-dashboard-compat.yml)
+        # — org policy requires full-length commit SHAs, not version tags.
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Clone stock simulator/dashboard/agent repos
+        env:
+          # scan-fix(ci:wrong-clone-owner): the RL agent repo lives at
+          # ffreis-org/stock-rl-agent (private) — the old clone pointed at a
+          # FelipeFuhr/ffreis-stock-rl-agent path that never existed, which
+          # git reports as "could not read Username" (same failure signature
+          # as a private-repo-without-auth 404). FLEET_READ_TOKEN_ORG is the
+          # fine-grained PAT scoped for read access to ffreis-org repos.
+          FLEET_READ_TOKEN_ORG: ${{ secrets.FLEET_READ_TOKEN_ORG }}
         run: |
           set -euo pipefail
           git clone --depth=1 https://github.com/FelipeFuhr/ffreis-stock-simulator.git ../ffreis-stock-simulator
           git clone --depth=1 https://github.com/FelipeFuhr/ffreis-stock-simulator-dashboard-go.git ../ffreis-stock-simulator-dashboard-go
-          git clone --depth=1 https://github.com/FelipeFuhr/ffreis-stock-rl-agent.git ../ffreis-stock-rl-agent
+          git clone --depth=1 "https://x-access-token:${FLEET_READ_TOKEN_ORG}@github.com/ffreis-org/stock-rl-agent.git" ../ffreis-stock-rl-agent
+          git clone --depth=1 "https://x-access-token:${FLEET_READ_TOKEN_ORG}@github.com/ffreis-org/ffreis-agents-runtime.git" ../ffreis-agents-runtime
+
+      - name: Assemble rl-agent multi-repo build context
+        # scan-fix(ci:missing-path-source-sibling): stock-rl-agent's own
+        # Containerfile COPYs from `stock/ffreis-agents-runtime` and
+        # `stock-rl-agent-repo/{pyproject.toml,uv.lock,src}` — a hardcoded
+        # local dev-workspace layout (pyproject.toml's [tool.uv.sources]
+        # path dependency is "../stock/ffreis-agents-runtime"), not the flat
+        # sibling-clone layout the other clones in this workflow use. Build a
+        # small directory matching what the Containerfile actually expects,
+        # since a docker build context can't span the parent directory the
+        # way a local checkout naturally does.
+        run: |
+          set -euo pipefail
+          mkdir -p ../rl-agent-build-ctx/stock
+          cp -r ../ffreis-agents-runtime ../rl-agent-build-ctx/stock/ffreis-agents-runtime
+          cp -r ../ffreis-stock-rl-agent ../rl-agent-build-ctx/stock-rl-agent-repo
 
       - name: Run full stack smoke
         env:
@@ -44,12 +72,24 @@ jobs:
           set -euo pipefail
           make stock-sim-full-stack
 
+      - name: Stage sibling-repo artifacts for upload
+        # scan-fix(ci:relative-path-in-upload-artifact): actions/upload-artifact
+        # v4 rejects any path containing ".." ("Relative pathing '.' and '..'
+        # is not allowed"), so the rl-agent artifacts (which live one
+        # directory above this checkout, per the sibling-clone convention)
+        # must be copied inside the workspace before uploading.
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/rl-agent
+          cp -r ../ffreis-stock-rl-agent/artifacts/. artifacts/rl-agent/ 2>/dev/null || true
+
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        # scan-fix(ci:unpinned-action): pinned to the SHA already vetted for
+        # this action elsewhere in this repo (stock-sim-dashboard-compat.yml).
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: stock-sim-full-stack-artifacts-${{ github.run_id }}
           if-no-files-found: warn
-          path: |
-            artifacts/
-            ../ffreis-stock-rl-agent/artifacts/
+          path: artifacts/

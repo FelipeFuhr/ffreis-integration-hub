@@ -36,11 +36,19 @@ jobs:
           python-version: "3.13"
 
       - name: Clone stock simulator/dashboard/agent repos
+        env:
+          # scan-fix(ci:wrong-clone-owner): the RL agent repo lives at
+          # ffreis-org/stock-rl-agent (private) — the old clone pointed at a
+          # FelipeFuhr/ffreis-stock-rl-agent path that never existed, which
+          # git reports as "could not read Username" (same failure signature
+          # as a private-repo-without-auth 404). FLEET_READ_TOKEN_ORG is the
+          # fine-grained PAT scoped for read access to ffreis-org repos.
+          FLEET_READ_TOKEN_ORG: ${{ secrets.FLEET_READ_TOKEN_ORG }}
         run: |
           set -euo pipefail
           git clone --depth=1 https://github.com/FelipeFuhr/ffreis-stock-simulator.git ../ffreis-stock-simulator
           git clone --depth=1 https://github.com/FelipeFuhr/ffreis-stock-simulator-dashboard-go.git ../ffreis-stock-simulator-dashboard-go
-          git clone --depth=1 https://github.com/FelipeFuhr/ffreis-stock-rl-agent.git ../ffreis-stock-rl-agent
+          git clone --depth=1 "https://x-access-token:${FLEET_READ_TOKEN_ORG}@github.com/ffreis-org/stock-rl-agent.git" ../ffreis-stock-rl-agent
 
       - name: Run simulator-agent compatibility smoke
         run: |

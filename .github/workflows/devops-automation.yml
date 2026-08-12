@@ -27,34 +27,3 @@ jobs:
       # public repos; the fleet pool is org-scoped to ffreis-org anyway).
       runner: '["ubuntu-latest"]'
 
-  stale:
-    if: vars.STALE_ENABLED == 'true' && github.event_name != 'pull_request'
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: write
-    uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-stale.yml@main
-    with:
-      only: "both"
-      # scan-fix(public-repo-runner): pin to ubuntu-latest — public repo, self-hosted unavailable.
-      runner: '["ubuntu-latest"]'
-
-  release-please:
-    if: vars.RELEASE_PLEASE_ENABLED == 'true' && github.event_name == 'push'
-    permissions:
-      contents: write
-      pull-requests: write
-      # scan-fix(ci:permissions-startup-failure): GitHub validates nested-job
-      # permissions statically for the whole file, before any `if:` is
-      # evaluated — this job's gate being false doesn't skip the check. The
-      # nested job requests issues:write; grant it or the whole workflow
-      # fails at startup.
-      issues: write
-    uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-release-please.yml@main
-    with:
-      target-branch: "main"
-      # scan-fix(public-repo-runner): pin to ubuntu-latest — public repo, self-hosted unavailable.
-      runner: '["ubuntu-latest"]'
-    secrets:
-      RELEASE_PLEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-
