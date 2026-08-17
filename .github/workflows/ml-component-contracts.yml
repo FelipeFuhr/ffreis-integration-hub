@@ -35,20 +35,24 @@ jobs:
 
       # scan-fix(org-migration): ffreis-ml-registry and ffreis-ml-crypto-env
       # moved FelipeFuhr -> ffreis-org; the old owner 404s ("Not Found").
-      # ffreis-stock-simulator below did NOT move, left as-is.
+      # This repo's own owner is FelipeFuhr, so its legacy FLEET_READ_TOKEN
+      # secret is the FelipeFuhr-scoped PAT (see quality-kit/scripts/
+      # deploy-pats.sh) -- it still 404s on an ffreis-org repo even with the
+      # right owner in `repository:`. Needs the explicit org-scoped token.
+      # ffreis-stock-simulator below did NOT move, left on FLEET_READ_TOKEN.
       - name: Checkout ffreis-ml-registry
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           repository: ffreis-org/ffreis-ml-registry
           path: deps/ffreis-ml-registry
-          token: ${{ secrets.FLEET_READ_TOKEN }}
+          token: ${{ secrets.FLEET_READ_TOKEN_ORG }}
 
       - name: Checkout ffreis-ml-crypto-env
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           repository: ffreis-org/ffreis-ml-crypto-env
           path: deps/ffreis-ml-crypto-env
-          token: ${{ secrets.FLEET_READ_TOKEN }}
+          token: ${{ secrets.FLEET_READ_TOKEN_ORG }}
 
       - name: Checkout ffreis-stock-simulator (crypto-env transitive dep)
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
