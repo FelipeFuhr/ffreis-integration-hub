@@ -1,0 +1,33 @@
+# scan-fix(lefthook:actionlint-workflows): the base command's `git diff
+# --cached --name-only` lists staged deletions too, then `xargs actionlint`
+# tries to open the now-missing path and dies with an OS error (not a lint
+# finding) -- e.g. deleting a redundant scorecard.yml (consolidated into
+# devops-automation.yml, mirroring FelipeFuhr/ffreis-buildguard#12) makes
+# every subsequent commit fail here until the file is restored.
+#
+# This MUST live in lefthook-local.yml, not lefthook.yml: per lefthook's own
+# merge order (`lefthook.yml -> remotes -> lefthook-local.yml`), a same-named
+# command re-declared in the root lefthook.yml is silently overwritten by the
+# remote's version -- only lefthook-local.yml, merged last, actually wins.
+# See ffreis-opendeck-config/lefthook-local.yml for the same finding.
+#
+# TODO(upstream): backport the `[ -f "$file" ]` skip to
+# ffreis-platform-standards's lefthook/base.yml so every consumer gets this
+# for free instead of needing this override.
+pre-commit:
+  commands:
+    actionlint-workflows:
+      run: |
+        set -eu
+        command -v actionlint >/dev/null 2>&1 || exit 0
+        wf=$(git diff --cached --name-only -z \
+               | tr '\0' '\n' \
+               | grep -E '^\.github/workflows/.*\.(yml|yaml)$' || true)
+        [ -z "$wf" ] && exit 0
+        existing=""
+        for f in $wf; do
+          [ -f "$f" ] && existing="$existing $f"
+        done
+        [ -z "$existing" ] && exit 0
+        # shellcheck disable=SC2086
+        actionlint $existing

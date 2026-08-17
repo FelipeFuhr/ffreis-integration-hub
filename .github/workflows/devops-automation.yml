@@ -22,25 +22,8 @@ jobs:
     uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-scorecard.yml@main
     with:
       upload-sarif: true
-
-  stale:
-    if: vars.STALE_ENABLED == 'true' && github.event_name != 'pull_request'
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: write
-    uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-stale.yml@main
-    with:
-      only: "both"
-
-  release-please:
-    if: vars.RELEASE_PLEASE_ENABLED == 'true' && github.event_name == 'push'
-    permissions:
-      contents: write
-      pull-requests: write
-    uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-release-please.yml@main
-    with:
-      target-branch: "main"
-    secrets:
-      RELEASE_PLEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+      # scan-fix(public-repo-runner): pin to ubuntu-latest — this repo is public,
+      # self-hosted runners can't pick up its jobs (GitHub blocks self-hosted on
+      # public repos; the fleet pool is org-scoped to ffreis-org anyway).
+      runner: '["ubuntu-latest"]'
 

@@ -35,7 +35,7 @@ services:
       CONVERTER_API_BASE: http://converter-api:8090
       OUT_DIR: /shared
     command: >
-      sh -lc "python -m pip install --no-cache-dir requests scikit-learn joblib &&
+      sh -c "python -m pip install --no-cache-dir requests scikit-learn skops &&
               python scripts/convert_and_prepare.py"
 
   python-api:
@@ -48,12 +48,12 @@ services:
         condition: service_completed_successfully
     command:
       - sh
-      - -lc
+      - -c
       - |
         while [ ! -f /shared/model.onnx ]; do
           sleep 1
         done
-        python -c "import uvicorn; from application import create_application; from config import Settings; uvicorn.run(create_application(Settings()), host='0.0.0.0', port=8080)"
+        exec python -c "import uvicorn; from application import create_application; from config import Settings; uvicorn.run(create_application(Settings()), host='0.0.0.0', port=8080)"
     environment:
       SM_MODEL_DIR: /shared
       MODEL_TYPE: onnx
@@ -113,7 +113,7 @@ services:
       BENCH_ITERATIONS: "120"
       ARTIFACTS_DIR: /shared
     command: >
-      sh -lc "python -m pip install --no-cache-dir requests &&
+      sh -c "python -m pip install --no-cache-dir requests &&
               python scripts/bench_compare_http.py"
 
 volumes:

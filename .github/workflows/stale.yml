@@ -15,8 +15,17 @@ concurrency:
 jobs:
   stale:
     permissions:
+      contents: read
+      # scan-fix(ci:permissions-startup-failure): the nested general-stale.yml job
+      # itself requests contents:read; the caller must grant at least that or GitHub
+      # rejects the workflow at startup ("requesting 'contents: read', but is only
+      # allowed 'contents: none'").
       issues: write
       pull-requests: write
     uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-stale.yml@main
     with:
       only: "both"
+      # scan-fix(public-repo-runner): pin to ubuntu-latest — this repo is public,
+      # self-hosted runners can't pick up its jobs (GitHub blocks self-hosted on
+      # public repos; the fleet pool is org-scoped to ffreis-org anyway).
+      runner: '["ubuntu-latest"]'

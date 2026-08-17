@@ -14,8 +14,17 @@ jobs:
   semantic-pr:
     if: github.event_name == 'pull_request'
     permissions:
+      contents: read
+      # scan-fix(ci:startup-failure): added contents:read — general-semantic-pr.yml's
+      # job needs it (checkout step); the caller only granting pull-requests:read
+      # capped the token below what the reusable workflow requires.
       pull-requests: read
     uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-semantic-pr.yml@main
+    with:
+      # scan-fix(public-repo-runner): pin to ubuntu-latest — this repo is public,
+      # self-hosted runners can't pick up its jobs (GitHub blocks self-hosted on
+      # public repos; the fleet pool is org-scoped to ffreis-org anyway).
+      runner: '["ubuntu-latest"]'
 
   actionlint:
     if: github.event_name == 'pull_request'
@@ -24,6 +33,8 @@ jobs:
     uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-actionlint.yml@main
     with:
       working-directory: "."
+      # scan-fix(public-repo-runner): pin to ubuntu-latest — public repo, self-hosted unavailable.
+      runner: '["ubuntu-latest"]'
 
   labeler:
     if: github.event_name == 'pull_request_target'
@@ -40,4 +51,6 @@ jobs:
           {"label":"benchmarks","patterns":["benchmarks/**"]},
           {"label":"docs","patterns":["**/*.md"]}
         ]
+      # scan-fix(public-repo-runner): pin to ubuntu-latest — public repo, self-hosted unavailable.
+      runner: '["ubuntu-latest"]'
 

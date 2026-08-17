@@ -27,7 +27,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout integration hub
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -41,13 +41,24 @@ jobs:
           git clone --depth=1 https://github.com/FelipeFuhr/ffreis-stock-simulator-dashboard-go.git ../ffreis-stock-simulator-dashboard-go
 
       - name: Run compatibility smoke
+        env:
+          # scan-fix(ci:blank-build-arg): docker compose's bake export path
+          # can drop the ${DASHBOARD_RUNTIME_IMAGE:-default} fallback and
+          # hand the Containerfile an empty RUNTIME_IMAGE ("base name should
+          # not be blank"). Pin both build-arg env vars explicitly so the
+          # build never depends on that interpolation succeeding, and
+          # disable the bake export path outright since it's the thing
+          # dropping the default.
+          COMPOSE_BAKE: "false"
+          DASHBOARD_BUILDER_IMAGE: "golang:1.25.8-alpine"
+          DASHBOARD_RUNTIME_IMAGE: "gcr.io/distroless/static-debian12:nonroot"
         run: |
           set -euo pipefail
           make smoke-stock-sim-dashboard
 
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: stock-sim-dashboard-compat-artifacts-${{ github.run_id }}
           if-no-files-found: warn

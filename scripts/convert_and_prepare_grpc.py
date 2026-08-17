@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 
 import grpc
-import joblib
+import skops.io as skio
 from converter_grpc import converter_pb2, converter_pb2_grpc
 from sklearn.linear_model import LogisticRegression
 
@@ -35,11 +35,14 @@ def _request_chunks(
         converter_pb2.ConvertRequestChunk(
             metadata=converter_pb2.ConvertMetadata(
                 framework="sklearn",
-                filename="model.joblib",
+                filename="model.skops",
                 expected_sha256=expected_sha,
                 n_features=3,
                 opset_version=14,
-                allow_unsafe=True,
+                # scan-fix(security:unsafe-pickle-upload): the converter's
+                # gRPC server hardcodes allow_unsafe=False and ignores this
+                # field — kept at the proto default (false) rather than
+                # requesting a permission the server will never grant.
             )
         )
     ]
@@ -72,10 +75,10 @@ def main() -> None:
     model = LogisticRegression(random_state=42, solver="liblinear")
     model.fit(x_train, y_train)
 
-    artifact_path = out_dir / "model.joblib"
+    artifact_path = out_dir / "model.skops"
     onnx_path = out_dir / "model.onnx"
     metadata_path = out_dir / "conversion_metadata_grpc.json"
-    joblib.dump(model, artifact_path)
+    skio.dump(model, artifact_path)
     payload = artifact_path.read_bytes()
     expected_sha = hashlib.sha256(payload).hexdigest()
 
