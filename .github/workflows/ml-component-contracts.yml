@@ -33,17 +33,20 @@ jobs:
       - name: Checkout integration hub
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
+      # scan-fix(org-migration): ffreis-ml-registry and ffreis-ml-crypto-env
+      # moved FelipeFuhr -> ffreis-org; the old owner 404s ("Not Found").
+      # ffreis-stock-simulator below did NOT move, left as-is.
       - name: Checkout ffreis-ml-registry
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
-          repository: FelipeFuhr/ffreis-ml-registry
+          repository: ffreis-org/ffreis-ml-registry
           path: deps/ffreis-ml-registry
           token: ${{ secrets.FLEET_READ_TOKEN }}
 
       - name: Checkout ffreis-ml-crypto-env
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
-          repository: FelipeFuhr/ffreis-ml-crypto-env
+          repository: ffreis-org/ffreis-ml-crypto-env
           path: deps/ffreis-ml-crypto-env
           token: ${{ secrets.FLEET_READ_TOKEN }}
 

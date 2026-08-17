@@ -31,6 +31,12 @@ jobs:
     with:
       working-directory: "."
       source-dirs: "scripts"
+      # scan-fix(ci:uv-extras-default): uv-extras defaults to "dev" even
+      # when uv-groups is set, and this repo's "dev" is a PEP 735
+      # dependency-group, not an optional-dependencies extra -- the
+      # unblanked default made every sync fail with "Extra `dev` is not
+      # defined". Must blank uv-extras explicitly, not just set uv-groups.
+      uv-extras: ""
       uv-groups: "dev"
 
   lint:
@@ -40,6 +46,7 @@ jobs:
       working-directory: "."
       source-dirs: "scripts"
       mypy-dirs: "scripts"
+      uv-extras: ""
       uv-groups: "dev"
 
   test:
@@ -48,6 +55,7 @@ jobs:
     with:
       working-directory: "."
       test-dir: "tests"
+      uv-extras: ""
       uv-groups: "dev"
       # coverage-min left at 0 (disabled) deliberately: pyproject.toml's own
       # [tool.pytest.ini_options] addopts already applies --cov=<modules>

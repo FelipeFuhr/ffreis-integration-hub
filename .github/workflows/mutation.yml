@@ -44,6 +44,10 @@ jobs:
     uses: FelipeFuhr/ffreis-workflows-python/.github/workflows/python-mutation.yml@8405bfc6e887b6e1af634a6ed104538ab98d3baf # main (post-#98)
     with:
       working-directory: "."
+      # scan-fix(ci:uv-extras-default): see ci.yml -- uv-extras defaults to
+      # "dev" even when uv-groups is set; this repo's "dev" is a group, not
+      # an extra.
+      uv-extras: ""
       uv-groups: "dev"
       paths-to-mutate: "scripts"
       threshold: 30
