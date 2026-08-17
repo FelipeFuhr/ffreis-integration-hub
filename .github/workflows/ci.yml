@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "scripts/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/ci.yml"
+  push:
+    branches: [main, master]
+    paths:
+      - "scripts/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fmt:
+    uses: FelipeFuhr/ffreis-workflows-python/.github/workflows/python-fmt.yml@8405bfc6e887b6e1af634a6ed104538ab98d3baf # main (post-#98)
+    with:
+      working-directory: "."
+      source-dirs: "scripts"
+      # scan-fix(ci:uv-extras-default): uv-extras defaults to "dev" even
+      # when uv-groups is set, and this repo's "dev" is a PEP 735
+      # dependency-group, not an optional-dependencies extra -- the
+      # unblanked default made every sync fail with "Extra `dev` is not
+      # defined". Must blank uv-extras explicitly, not just set uv-groups.
+      uv-extras: ""
+      uv-groups: "dev"
+
+  lint:
+    needs: [fmt]
+    uses: FelipeFuhr/ffreis-workflows-python/.github/workflows/python-lint.yml@8405bfc6e887b6e1af634a6ed104538ab98d3baf # main (post-#98)
+    with:
+      working-directory: "."
+      source-dirs: "scripts"
+      mypy-dirs: "scripts"
+      uv-extras: ""
+      uv-groups: "dev"
+
+  test:
+    needs: [fmt]
+    uses: FelipeFuhr/ffreis-workflows-python/.github/workflows/python-test.yml@8405bfc6e887b6e1af634a6ed104538ab98d3baf # main (post-#98)
+    with:
+      working-directory: "."
+      test-dir: "tests"
+      uv-extras: ""
+      uv-groups: "dev"
+      # coverage-min left at 0 (disabled) deliberately: pyproject.toml's own
+      # [tool.pytest.ini_options] addopts already applies --cov=<modules>
+      # --cov-fail-under=80 (stricter than the fleet's 75% floor) to every
+      # bare `pytest` invocation, including this one — a second --cov-fail-under
+      # here would just duplicate that gate with a redundant --cov flag.

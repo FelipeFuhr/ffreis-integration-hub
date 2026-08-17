@@ -4,10 +4,15 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
-      - "tests/test_ml_onnx_feature_boundary.py"
-      - "tests/test_ml_registry_serve_parity.py"
-      - "scripts/check_ml_component_contracts.sh"
+      # scan-fix(ci-gap): the old filter only listed 2 of 6 tests/*.py files
+      # plus the shell runner — a change to scripts/check_feature_contract.py
+      # or scripts/check_ml_component_contracts.py (the very modules these
+      # contracts exercise) never triggered this workflow. Widened to the
+      # whole scripts/ and tests/ trees plus the lockfile.
+      - "scripts/**"
+      - "tests/**"
       - "pyproject.toml"
+      - "uv.lock"
       - ".github/workflows/ml-component-contracts.yml"
   schedule:
     - cron: "17 10 15 * *"  # monthly scattered
@@ -28,25 +33,37 @@ jobs:
       - name: Checkout integration hub
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
+      # scan-fix(org-migration): ffreis-ml-registry and ffreis-ml-crypto-env
+      # moved FelipeFuhr -> ffreis-org; the old owner 404s ("Not Found").
+      # This repo's own owner is FelipeFuhr, so its legacy FLEET_READ_TOKEN
+      # secret is the FelipeFuhr-scoped PAT (see quality-kit/scripts/
+      # deploy-pats.sh) -- it still 404s on an ffreis-org repo even with the
+      # right owner in `repository:`. Needs the explicit org-scoped token.
+      # ffreis-stock-simulator below did NOT move, left on FLEET_READ_TOKEN.
       - name: Checkout ffreis-ml-registry
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
-          repository: FelipeFuhr/ffreis-ml-registry
+          repository: ffreis-org/ffreis-ml-registry
           path: deps/ffreis-ml-registry
-          token: ${{ secrets.FLEET_READ_TOKEN }}
+          token: ${{ secrets.FLEET_READ_TOKEN_ORG }}
 
       - name: Checkout ffreis-ml-crypto-env
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
-          repository: FelipeFuhr/ffreis-ml-crypto-env
+          repository: ffreis-org/ffreis-ml-crypto-env
           path: deps/ffreis-ml-crypto-env
-          token: ${{ secrets.FLEET_READ_TOKEN }}
+          token: ${{ secrets.FLEET_READ_TOKEN_ORG }}
 
+      # scan-fix(uv-path-source): ffreis-ml-crypto-env's own pyproject.toml
+      # declares `ffreis-stock-simulator = { path = "../../stock/ffreis-
+      # stock-simulator" }` relative to itself -- with crypto-env checked
+      # out at deps/ffreis-ml-crypto-env, that resolves to <repo-root>/
+      # stock/ffreis-stock-simulator, not deps/ffreis-stock-simulator.
       - name: Checkout ffreis-stock-simulator (crypto-env transitive dep)
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           repository: FelipeFuhr/ffreis-stock-simulator
-          path: deps/ffreis-stock-simulator
+          path: stock/ffreis-stock-simulator
           token: ${{ secrets.FLEET_READ_TOKEN }}
 
       - name: Setup Python 3.13
@@ -60,7 +77,7 @@ jobs:
       - name: Install integration hub and sibling packages
         run: |
           uv sync
-          uv pip install -e deps/ffreis-stock-simulator
+          uv pip install -e stock/ffreis-stock-simulator
           uv pip install -e deps/ffreis-ml-crypto-env
           uv pip install -e deps/ffreis-ml-registry
 

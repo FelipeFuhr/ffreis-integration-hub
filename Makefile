@@ -24,16 +24,35 @@ help:
 fmt: ## Format Python scripts in place (ruff format)
 	uv run ruff format scripts
 
+.PHONY: fmt-check
+fmt-check: ## Fail if scripts are not formatted (ruff format --check)
+	uv run ruff format --check scripts
+
 .PHONY: lint
 lint: ## Run lint/type checks on scripts
 	uv run ruff check scripts
-	uv run ruff format --check scripts
 	uv run mypy scripts
 
 .PHONY: test
 test: ## Run unit tests (pytest + coverage) and integration smoke checks
 	uv run pytest
 	$(MAKE) check-ml-components
+
+.PHONY: coverage
+coverage: ## Run unit tests with the coverage floor pyproject.toml enforces (80%, above the fleet's 75% floor)
+	uv run pytest
+
+.PHONY: coverage-gate
+coverage-gate: coverage ## Coverage floor gate (alias used by the complex lefthook tier)
+
+.PHONY: integration-coverage-gate
+integration-coverage-gate: ## Cross-repo contract tests (tests/*integration*); skip gracefully when sibling packages aren't installed
+	uv run pytest -m integration
+
+.PHONY: mutation
+mutation: ## Mutation-test scripts/ with mutmut (slow — run in CI, not pre-commit)
+	uv run mutmut run --paths-to-mutate scripts --tests-dir tests || true
+	uv run mutmut results
 
 .PHONY: validate
 validate: ## Static type checking (mypy)
