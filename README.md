@@ -52,6 +52,11 @@ cd ffreis-integration-hub
 make typing-debt-report
 ```
 
+Set `AGENT_REPO_DIR_NAME` to also scan the private RL-agent companion repo
+(its name is not published here — pass the sibling directory name you
+checked it out under) if you have it checked out locally; it is skipped by
+default, same as any other sibling repo that isn't present on disk.
+
 ## Converter -> Serving parity bench
 
 This integration scenario validates an end-to-end path:
@@ -110,7 +115,9 @@ make smoke-stock-sim-dashboard
 ## Stock Simulator + RL Agent Schema Compatibility
 
 This check enforces that simulator live event payloads and replay schema remain
-compatible with `ffreis-stock-rl-agent` assumptions.
+compatible with the private RL-agent companion repo's assumptions. That repo's
+identity is intentionally not published in this public repo — see `AGENT_REPO`
+below.
 
 It validates:
 
@@ -119,11 +126,11 @@ It validates:
 - replay schema fields in simulator `RecordedStep`,
 - replay schema fields in agent `ReplayRow`.
 
-Run:
+Run (`AGENT_REPO` must point at a local checkout of the companion repo):
 
 ```bash
 cd ffreis-integration-hub
-make smoke-stock-sim-agent-compat
+AGENT_REPO=../<path-to-your-local-checkout> make smoke-stock-sim-agent-compat
 ```
 
 ## Unified Stock Stack (Compose)
@@ -135,11 +142,13 @@ A single compose scenario is available to stitch:
 - online RL agent
 - offline experiment runner
 
-Run:
+Run (`AGENT_REPO` must point at a local checkout of the private RL-agent
+companion repo; the Makefile resolves it to the absolute `AGENT_REPO_PATH`
+the compose file consumes):
 
 ```bash
 cd ffreis-integration-hub
-make stock-sim-full-stack
+AGENT_REPO=../<path-to-your-local-checkout> make stock-sim-full-stack
 ```
 
 Compose file:
@@ -188,6 +197,18 @@ Schedule:
 Optional secret for private repos:
 
 - `INTEGRATION_REPO_TOKEN`
+
+`stock-sim-agent-compat.yml` and `stock-sim-full-stack.yml` clone private
+companion repos whose identity must not be hardcoded in this public repo.
+Required repo variables (not secret — plain https clone URLs; set with
+`gh variable set <name> --repo FelipeFuhr/ffreis-integration-hub --body
+"https://github.com/<owner>/<repo>.git"`), both consumed via
+`FLEET_READ_TOKEN_ORG` for auth:
+
+- `COMPAT_REPO_URL` — the RL-agent companion repo (both workflows)
+- `COMPAT_AGENT_RUNTIME_URL` — the agents-runtime companion repo (`stock-sim-full-stack.yml` only)
+
+Both can be overridden per manual run via the matching `workflow_dispatch` input.
 
 ## Extending to more projects
 

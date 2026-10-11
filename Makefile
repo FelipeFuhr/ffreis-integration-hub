@@ -140,23 +140,33 @@ smoke-stock-sim-dashboard: ## Validate compatibility between stock simulator and
 	./scripts/compose.sh -f ../ffreis-stock-simulator-dashboard-go/docker-compose.yml up --build -d; \
 	DASHBOARD_BASE_URL="http://127.0.0.1:18080" ./scripts/check_stock_dashboard_compat.py
 
+# AGENT_REPO: local filesystem path to the RL-agent companion repo (private;
+# not named here — this is a public repo and the companion repo's identity
+# must be supplied by the caller, not hardcoded). Set it to wherever you
+# have that repo checked out, e.g.:
+#   AGENT_REPO=../rl-agent-companion make smoke-stock-sim-agent-compat
+
 .PHONY: smoke-stock-sim-agent-compat
-smoke-stock-sim-agent-compat: ## Validate stock simulator event/replay schema compatibility with RL agent expectations
+smoke-stock-sim-agent-compat: ## Validate stock simulator event/replay schema compatibility with RL agent expectations (requires AGENT_REPO)
 	@test -d "../ffreis-stock-simulator" || (echo "Missing repo at ../ffreis-stock-simulator"; exit 1)
 	@test -d "../ffreis-stock-simulator-dashboard-go" || (echo "Missing repo at ../ffreis-stock-simulator-dashboard-go"; exit 1)
-	@test -d "../ffreis-stock-rl-agent" || (echo "Missing repo at ../ffreis-stock-rl-agent"; exit 1)
+	@test -n "$$AGENT_REPO" || (echo "Set AGENT_REPO to the local path of the RL-agent companion repo (private; see Makefile comment above this target)"; exit 1)
+	@test -d "$$AGENT_REPO" || (echo "Missing repo at $$AGENT_REPO (set via AGENT_REPO)"; exit 1)
 	@set -euo pipefail; \
 	cleanup() { ./scripts/compose.sh -f ../ffreis-stock-simulator-dashboard-go/docker-compose.yml down --remove-orphans || true; }; \
 	trap cleanup EXIT; \
 	./scripts/compose.sh -f ../ffreis-stock-simulator-dashboard-go/docker-compose.yml up --build -d; \
-	SIMULATOR_BASE_URL="http://127.0.0.1:18000" ./scripts/check_stock_sim_agent_compat.py
+	SIMULATOR_BASE_URL="http://127.0.0.1:18000" AGENT_REPO="$$AGENT_REPO" ./scripts/check_stock_sim_agent_compat.py
 
 .PHONY: stock-sim-full-stack
-stock-sim-full-stack: ## Run simulator + dashboard + rl-agent + experiment-runner in one compose stack
+stock-sim-full-stack: ## Run simulator + dashboard + rl-agent + experiment-runner in one compose stack (requires AGENT_REPO)
 	@test -d "../ffreis-stock-simulator" || (echo "Missing repo at ../ffreis-stock-simulator"; exit 1)
 	@test -d "../ffreis-stock-simulator-dashboard-go" || (echo "Missing repo at ../ffreis-stock-simulator-dashboard-go"; exit 1)
-	@test -d "../ffreis-stock-rl-agent" || (echo "Missing repo at ../ffreis-stock-rl-agent"; exit 1)
-	-./scripts/compose.sh -f examples/docker-compose.stock-sim-dashboard-agent-experiments.yml down --remove-orphans
+	@test -n "$$AGENT_REPO" || (echo "Set AGENT_REPO to the local path of the RL-agent companion repo (private; see Makefile comment above smoke-stock-sim-agent-compat)"; exit 1)
+	@test -d "$$AGENT_REPO" || (echo "Missing repo at $$AGENT_REPO (set via AGENT_REPO)"; exit 1)
+	@set -euo pipefail; \
+	export AGENT_REPO_PATH="$$(cd "$$AGENT_REPO" && pwd)"; \
+	./scripts/compose.sh -f examples/docker-compose.stock-sim-dashboard-agent-experiments.yml down --remove-orphans || true; \
 	./scripts/compose.sh -f examples/docker-compose.stock-sim-dashboard-agent-experiments.yml up --build --abort-on-container-exit --exit-code-from experiment-runner
 
 .PHONY: compare-container

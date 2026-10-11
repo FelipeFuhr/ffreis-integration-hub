@@ -42,15 +42,19 @@ services:
       - "18080:8080"
 
   rl-agent:
+    # This service builds the private RL-agent companion repo. Its identity
+    # is intentionally not named here — see Makefile target stock-sim-full-stack,
+    # which requires AGENT_REPO (local checkout path) and resolves it to the
+    # absolute AGENT_REPO_PATH consumed by the volumes below.
     build:
-      # scan-fix(ci:missing-path-source-sibling): stock-rl-agent's
+      # scan-fix(ci:missing-path-source-sibling): the companion repo's own
       # Containerfile expects a build context laid out as
       # stock/ffreis-agents-runtime + stock-rl-agent-repo (its
       # [tool.uv.sources] path dependency), not the repo's own root —
       # see the CI workflow step that assembles this directory.
       context: ../../rl-agent-build-ctx
       dockerfile: stock-rl-agent-repo/Containerfile
-    image: ffreis-stock-rl-agent:local
+    image: rl-agent:local
     depends_on:
       simulator:
         condition: service_healthy
@@ -73,10 +77,10 @@ services:
       - --strategy
       - "${ONLINE_STRATEGY:-default}"
     volumes:
-      - ../../ffreis-stock-rl-agent/artifacts:/artifacts
+      - ${AGENT_REPO_PATH:?Set AGENT_REPO_PATH to the absolute local path of the private RL-agent companion repo (the stock-sim-full-stack Makefile target sets this from AGENT_REPO automatically)}/artifacts:/artifacts
 
   experiment-runner:
-    image: ffreis-stock-rl-agent:local
+    image: rl-agent:local
     depends_on:
       rl-agent:
         condition: service_completed_successfully
@@ -95,4 +99,4 @@ services:
       - --checkpoint-path
       - /artifacts/checkpoints/offline.pt
     volumes:
-      - ../../ffreis-stock-rl-agent/artifacts:/artifacts
+      - ${AGENT_REPO_PATH:?Set AGENT_REPO_PATH to the absolute local path of the private RL-agent companion repo (the stock-sim-full-stack Makefile target sets this from AGENT_REPO automatically)}/artifacts:/artifacts

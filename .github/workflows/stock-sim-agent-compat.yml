@@ -13,6 +13,11 @@ on:
   schedule:
     - cron: "32 13 3 * *"  # monthly scattered (was: 20 9 * * 1)
   workflow_dispatch:
+    inputs:
+      agent_repo_url:
+        description: "Override: https clone URL for the RL-agent companion repo (defaults to the COMPAT_REPO_URL repo variable)"
+        required: false
+        type: string
 
 
 concurrency:
@@ -37,20 +42,29 @@ jobs:
 
       - name: Clone stock simulator/dashboard/agent repos
         env:
-          # scan-fix(ci:wrong-clone-owner): the RL agent repo lives at
-          # ffreis-org/stock-rl-agent (private) — the old clone pointed at a
-          # FelipeFuhr/ffreis-stock-rl-agent path that never existed, which
+          # scan-fix(ci:wrong-clone-owner): the RL agent companion repo lives
+          # under a different (private) owner than this public hub — an
+          # earlier clone pointed at an owner/path that never existed, which
           # git reports as "could not read Username" (same failure signature
           # as a private-repo-without-auth 404). FLEET_READ_TOKEN_ORG is the
-          # fine-grained PAT scoped for read access to ffreis-org repos.
+          # fine-grained PAT scoped for read access to that owner's repos.
           FLEET_READ_TOKEN_ORG: ${{ secrets.FLEET_READ_TOKEN_ORG }}
+          # The companion repo is private; its identity must not be
+          # hardcoded in this public repo's CI (fleet-wide policy). Set it
+          # via: gh variable set COMPAT_REPO_URL --repo <this-repo> --body
+          # "https://github.com/<owner>/<repo>.git" — optionally overridden
+          # per manual run via the agent_repo_url workflow_dispatch input.
+          AGENT_REPO_URL: ${{ inputs.agent_repo_url || vars.COMPAT_REPO_URL }}
         run: |
           set -euo pipefail
+          : "${AGENT_REPO_URL:?Set the COMPAT_REPO_URL repo variable (or pass agent_repo_url on workflow_dispatch) to the RL-agent companion repo https clone URL}"
           git clone --depth=1 https://github.com/FelipeFuhr/ffreis-stock-simulator.git ../ffreis-stock-simulator
           git clone --depth=1 https://github.com/FelipeFuhr/ffreis-stock-simulator-dashboard-go.git ../ffreis-stock-simulator-dashboard-go
-          git clone --depth=1 "https://x-access-token:${FLEET_READ_TOKEN_ORG}@github.com/ffreis-org/stock-rl-agent.git" ../ffreis-stock-rl-agent
+          git clone --depth=1 "https://x-access-token:${FLEET_READ_TOKEN_ORG}@${AGENT_REPO_URL#https://}" ../agent-repo
 
       - name: Run simulator-agent compatibility smoke
+        env:
+          AGENT_REPO: ../agent-repo
         run: |
           set -euo pipefail
           make smoke-stock-sim-agent-compat
