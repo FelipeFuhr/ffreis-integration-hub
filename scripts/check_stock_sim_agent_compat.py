@@ -174,7 +174,17 @@ def _check_replay_schema_contract(root_dir: Path) -> None:
     simulator_repo = Path(
         os.getenv("SIMULATOR_REPO", str(root_dir.parent / "ffreis-stock-simulator"))
     )
-    agent_repo = Path(os.getenv("AGENT_REPO", str(root_dir.parent / "ffreis-stock-rl-agent")))
+
+    # The RL-agent companion repo is private; its identity must not be
+    # hardcoded as a default in this public repo. AGENT_REPO is required.
+    agent_repo_env = os.getenv("AGENT_REPO")
+    if not agent_repo_env:
+        raise RuntimeError(
+            "AGENT_REPO is not set. Export AGENT_REPO to the local filesystem "
+            "path of the (private) RL-agent companion repo before running "
+            "this check — see Makefile target smoke-stock-sim-agent-compat."
+        )
+    agent_repo = Path(agent_repo_env)
 
     simulator_recorder = simulator_repo / "src" / "stock_simulator" / "recorder.py"
     agent_replay = agent_repo / "src" / "stock_rl_agent" / "replay.py"

@@ -10,19 +10,28 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
 
 DEFAULT_REPOS = [
     "ffreis-agent-runtime",
-    "ffreis-stock-rl-agent",
     "ffreis-stock-simulator",
     "ffreis-python-onnx-model-serving",
     "ffreis-python-onnx-model-converter",
     "ffreis-runner-comparison",
     "ffreis-integration-hub",
 ]
+
+# The RL-agent companion repo is private; its name must not be hardcoded as
+# a default in this public repo. Set AGENT_REPO_DIR_NAME to the sibling
+# directory name (e.g. a local checkout named "rl-agent-companion") to
+# include it in the scan; otherwise it is skipped, same as any other sibling
+# repo that isn't checked out locally.
+_agent_repo_dir_name = os.getenv("AGENT_REPO_DIR_NAME", "").strip()
+if _agent_repo_dir_name:
+    DEFAULT_REPOS.append(_agent_repo_dir_name)
 
 EXCLUDE_GLOBS = [
     "src/*grpc*/*",
